@@ -1,0 +1,12 @@
+*.pth
+*.pt
+*__pycache__
+*.gz
+*cifar-10-batches-py
+*login.json
+/wandb
+/checkpoints
+/runs
+/data/datasets/
+*.ipynb_checkpoints*
+.env

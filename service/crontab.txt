@@ -1,0 +1,2 @@
+# Ejecutar cada minuto un print de debug usando conda env sacyr
+*/15 * * * * root /opt/conda/bin/conda run -n sacyr python -m pip freeze >> /proc/1/fd/1 2>&1
