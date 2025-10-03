@@ -170,22 +170,17 @@ def main():
 
         model.load_state_dict(state_dict)
 
-    def compute_trasvase(row, trafico_minimo=1500, factor_mejora_minimo=1.3):
-        # if both flows are lower than 1500 then no trasvase
-        if (
-            row["IntensidadCarrilAsc"] < trafico_minimo
-            and row["IntensidadCarrilDesc"] < trafico_minimo
-        ):
-            return False, False, 0, 0
+    def compute_trasvase(
+        row,
+        trafico_minimo=800,
+        flujo_maximo_carril_perjudicado=1600,
+        factor_maximo_perjudicado_beneficiado=1.1,
+    ):
 
         asc_is_bigger = row["IntensidadCarrilAsc"] >= row["IntensidadCarrilDesc"]
 
-        flujo_medio = (row["IntensidadCarrilAsc"] + row["IntensidadCarrilDesc"]) / (
-            row["n_carriles"] * 2
-        )
-
         # identify the calzada with higher and lower flow
-        if row["IntensidadCarrilAsc"] >= row["IntensidadCarrilDesc"]:
+        if asc_is_bigger:
             high_flow = row["IntensidadCarrilAsc"]
             low_flow = row["IntensidadCarrilDesc"]
             n_high = row["n_carriles"]
@@ -196,36 +191,38 @@ def main():
             n_high = row["n_carriles"]
             n_low = row["n_carriles"]
 
-        # if n_low < 2 then no trasvase
-        if n_low < 2:
-            return False, False, 0, 0
-
         # original average per lane using original number of carriles
         orig_avg_high = high_flow / n_high
         orig_avg_low = low_flow / n_low
-        original_avg_error = (
-            abs(flujo_medio - orig_avg_high) * n_high
-            + abs(flujo_medio - orig_avg_low) * n_low
-        )
+        new_avg_high = high_flow / (n_high + 1)
+        new_avg_low = low_flow / (n_low - 1)
 
-        modified_high = high_flow / (n_high + 1)
-        modified_low = low_flow / (n_low - 1)
-        modified_avg_error = abs(flujo_medio - modified_high) * (n_high + 1) + abs(
-            flujo_medio - modified_low
-        ) * (n_low - 1)
-
-        # if the modified average error is lower than the original average error then we will do the trasvase
-        if modified_avg_error < original_avg_error * (1 / factor_mejora_minimo):
+        # if both flows are lower than 800 then no trasvase
+        if orig_avg_high < trafico_minimo and orig_avg_low < trafico_minimo:
             if asc_is_bigger:
-                new_asc_flow = modified_high * n_high
-                new_desc_flow = modified_low * (n_low - 1) + modified_high * 1
-                return True, False, new_asc_flow, new_desc_flow
+                return False, False, new_avg_high, new_avg_low
             else:
-                new_desc_flow = modified_high * n_high
-                new_asc_flow = modified_low * (n_low - 1) + modified_high * 1
-                return False, True, new_asc_flow, new_desc_flow
+                return False, False, new_avg_low, new_avg_high
+
+        # if the disadvantaged flow is higher than the maximum, dont recommend trasvase
+        elif new_avg_low > flujo_maximo_carril_perjudicado:
+            if asc_is_bigger:
+                return False, False, new_avg_high, new_avg_low
+            else:
+                return False, False, new_avg_low, new_avg_high
+
+        # if the modified flow of the disadvantaged lane is more than the advantaged lane, by factor_maximo_perjudicado_beneficiado, dont recommend trasvase
+        elif new_avg_low > new_avg_high * factor_maximo_perjudicado_beneficiado:
+            if asc_is_bigger:
+                return False, False, new_avg_high, new_avg_low
+            else:
+                return False, False, new_avg_low, new_avg_high
+
         else:
-            return False, False, 0, 0
+            if asc_is_bigger:
+                return True, False, new_avg_high, new_avg_low
+            else:
+                return False, True, new_avg_low, new_avg_high
 
     # cargar toda la tabla B_Elementos
     conexion = psycopg2.connect(
@@ -277,10 +274,11 @@ def main():
     # fecha_actual = pd.to_datetime("2027-01-03 23:00:00")
     print(f"Fecha actual: {fecha_actual}")
 
-    trafico_minimo = 1500
-    factor_mejora_minimo = 1.3
+    trafico_minimo = 800
+    flujo_maximo_carril_perjudicado = 1600
+    factor_maximo_perjudicado_beneficiado = 1.1
     print(
-        f"Tráfico mínimo: {trafico_minimo}, Factor mejora mínimo: {factor_mejora_minimo}"
+        f"Tráfico mínimo: {trafico_minimo}, Factor de Flujo máximo de carril perjudicado respecto beneficiado: {factor_maximo_perjudicado_beneficiado}"
     )
 
     predicciones_espiras = {}
@@ -381,10 +379,21 @@ def main():
                     ]
                 ] = df_preds.apply(
                     lambda row: compute_trasvase(
-                        row, trafico_minimo, factor_mejora_minimo
+                        row,
+                        trafico_minimo,
+                        flujo_maximo_carril_perjudicado,
+                        factor_maximo_perjudicado_beneficiado=1.1,
                     ),
                     axis=1,
                     result_type="expand",
+                )
+
+                # Dividimos IntensidadCarrilAsc, IntensidadCarrilDesc por n_carriles para tener la intensidad por carril
+                df_preds["IntensidadCarrilAsc"] = (
+                    df_preds["IntensidadCarrilAsc"] / df_preds["n_carriles"]
+                )
+                df_preds["IntensidadCarrilDesc"] = (
+                    df_preds["IntensidadCarrilDesc"] / df_preds["n_carriles"]
                 )
 
                 print(df_preds.head(3))
