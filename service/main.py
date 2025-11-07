@@ -245,7 +245,9 @@ def main():
 
     # Filtramos los nombres en M-108-0, M-139-0, M-43-0
     df_elementos = df_elementos[
-        df_elementos["Nombre"].isin(["M-108-0", "M-139-0", "M-43-0"])  # TO DO
+        df_elementos["Nombre"].isin(
+            ["M-108-0", "M-139-0", "M-43-0", "M-267-0", "CU-801", "M-109-0", "M-110-0"]
+        )  # TO DO
     ]
 
     # seleccionamos los pares Nombre, Id
