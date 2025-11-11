@@ -64,7 +64,9 @@ script that the container executes at start time.
 From terminal set inside the service directory and run: 
 
 ```python
-docker compose up --build
+docker build -t sacyr .
+
+docker run --name sacyr-container sacyr
 ```
 
 It may be posible to be needed to work on ports and network so the database can be reached from the container.
