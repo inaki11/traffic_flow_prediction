@@ -22,6 +22,7 @@ def get_device():
 
 
 def main():
+    print("---------------------  Forecasting Code  ----------------------------")
     # Select device
     device = get_device()
 
@@ -32,6 +33,7 @@ def main():
 
     print(f"Tensor computation result on {device}:")
     print(z)
+    
 
     # Print current date and time
     fecha_actual = datetime.datetime.now(ZoneInfo("Europe/Madrid"))
@@ -250,6 +252,9 @@ def main():
         )  # TO DO
     ]
 
+    # Eliminamos filas duplicadas
+    df_elementos = df_elementos.drop_duplicates()
+
     # seleccionamos los pares Nombre, Id
     for nombre, Id in zip(df_elementos["Nombre"], df_elementos["Id"]):
         print(f'"{nombre}": {Id},')
@@ -453,7 +458,7 @@ def main():
             except Exception as e:
                 conexion.rollback()
                 print(f"Error insertando Fo_Elemento {k}: {e}")
-
+    print("---------------------  Forecasting Code  ----------------------------")
 
 if __name__ == "__main__":
     main()

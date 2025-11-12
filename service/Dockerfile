@@ -34,6 +34,10 @@ RUN conda create -n ${CONDA_ENV_NAME} python=${PYTHON_VER} pip -y && \
 # 6) Copiar aplicación
 COPY main.py /app/main.py
 RUN dos2unix /app/main.py
+COPY simulacion_TR.py /app/simulacion_TR.py
+RUN dos2unix /app/simulacion_TR.py
+COPY a3_22_24_filtered.csv /app/a3_22_24_filtered.csv
+RUN dos2unix /app/a3_22_24_filtered.csv
 COPY /models /app/models
 
 
